@@ -19,7 +19,9 @@
        the 4 strips of LEDs. The master and slave mega each only has 15 pwn pins
        to control 14 motor controllers each. The slave just controls 14 motor controllers.
 
-       PWM pins 2, ..., 13, 38, 39, 40
+       PWM pins 2, ..., 13, 38, 44, 45, 46
+
+       Cannot have delay() in program else rpm calculation will be affected
 */
 #include "FastLED.h"
 
@@ -39,18 +41,18 @@
 #define motorPin10 11
 #define motorPin11 12
 #define motorPin12 13
-#define motorPin13 38
-#define motorPin14 39
+#define motorPin13 44
+#define motorPin14 45
 
-#define motorOutPin 40 //to the mega slave
+#define motorOutPin 46 //to the slave Mega
 
-#define ledPin1 44
-#define ledPin2 46
-#define ledPin3 48
-#define ledPin4 50
+#define ledPin1 23
+#define ledPin2 24
+#define ledPin3 25
+#define ledPin4 27
 
 #define NUM_STRIPS 4
-#define NUM_LEDS_PER_STRIP 240 //4m, 60 leds per m
+#define NUM_LEDS_PER_STRIP 300 //mix of 4m and 5m, 60 leds per m
 CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
 
 CRGB strip1[NUM_LEDS_PER_STRIP];
@@ -59,7 +61,7 @@ CRGB strip3[NUM_LEDS_PER_STRIP];
 CRGB strip4[NUM_LEDS_PER_STRIP];
 
 int currVal[3], prevVal[3], counter[3];
-int RPM[3], myMaxRPM, myPrevMaxRPM, myRawMaxRPM;
+int RPM[3], myMaxRPM, myPrevMaxRPM;
 long isTriggeredTime[3], prevReadTime[3];
 long oneRevTimeInterval[3], timeInterval[3];
 
@@ -97,6 +99,8 @@ void setup() {
  FastLED.addLeds<NEOPIXEL, ledPin2>(leds[1], NUM_LEDS_PER_STRIP);
  FastLED.addLeds<NEOPIXEL, ledPin3>(leds[2], NUM_LEDS_PER_STRIP);
  FastLED.addLeds<NEOPIXEL, ledPin4>(leds[3], NUM_LEDS_PER_STRIP);
+
+ init_LEDs();
 }
 
 void loop() {

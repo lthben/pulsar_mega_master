@@ -2,15 +2,22 @@ void read_hall_sensor(int i) {
 
   currVal[i] = digitalRead(i * 4 + 22);
 
+  Serial.print("hall: ");
+  for (int i=0; i<3; i++) {
+    Serial.print(currVal[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
+
   if (currVal[i] == LOW && prevVal[i] == HIGH) { //positive hall detection
 
     counter[i]++;
     isTriggeredTime[i] = millis();
 
-    //    Serial.print("counter ");
-    //    Serial.print(i + 12);
-    //    Serial.print(": ");
-    //    Serial.println(counter[i]);
+//        Serial.print("counter ");
+//        Serial.print(i*4 + 22);
+//        Serial.print(": ");
+//        Serial.println(counter[i]);
   }
 
   prevVal[i] = currVal[i];
@@ -41,12 +48,12 @@ void calc_RPM(int i) {
 
 void get_myMaxRPM() {
 
-  //    Serial.print("RPM ");
-  //    for (int i=0; i<3; i++) {
-  //        Serial.print(RPM[i]);
-  //        Serial.print(" ");
-  //    }
-  //    Serial.println();
+//      Serial.print("RPM ");
+//      for (int i=0; i<3; i++) {
+//          Serial.print(RPM[i]);
+//          Serial.print(" ");
+//      }
+//      Serial.println();
 
   if ( RPM[0] > RPM[1] ) {
     myMaxRPM = RPM[0];
@@ -58,10 +65,6 @@ void get_myMaxRPM() {
     myMaxRPM = RPM[2];
   }
 
-  //    Serial.print("maxVal: ");
-  //    Serial.println(maxVal);
-
-  myRawMaxRPM = myMaxRPM;
   myMaxRPM = constrain(myMaxRPM, MINRPM, MAXRPM);
   myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 300); //600 is analog value for the motor controller for cruise speed, 300 for max speed
 }
