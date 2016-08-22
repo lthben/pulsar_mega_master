@@ -51,6 +51,15 @@
 #define ledPin3 25
 #define ledPin4 27
 
+#define relayPin1 48
+#define relayPin2 49
+#define relayPin3 50
+#define relayPin4 51
+#define relayPin5 52
+#define relayPin6 53
+
+#define potPin A0 //for testing only, simulates the maxRPM
+
 #define NUM_STRIPS 4
 #define NUM_LEDS_PER_STRIP 300 //mix of 4m and 5m, 60 leds per m
 CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
@@ -61,12 +70,14 @@ CRGB strip3[NUM_LEDS_PER_STRIP];
 CRGB strip4[NUM_LEDS_PER_STRIP];
 
 int currVal[3], prevVal[3], counter[3];
-int RPM[3], myMaxRPM, myPrevMaxRPM;
+int RPM[3], myMaxRPM, myPrevMaxRPM, myRawMaxRPM;
 long isTriggeredTime[3], prevReadTime[3];
 long oneRevTimeInterval[3], timeInterval[3];
 
 #define MAXRPM 100 //max speed of use bicycle needed to trigger max speed for pov
 #define MINRPM 20 //min speed below which will read as an off signal
+
+bool isMaxSpeed; //whether user has triggered max speed RPM
 
 void setup() {
 
@@ -95,15 +106,34 @@ void setup() {
   pinMode(ledPin3, OUTPUT);
   pinMode(ledPin4, OUTPUT);
 
- FastLED.addLeds<NEOPIXEL, ledPin1>(leds[0], NUM_LEDS_PER_STRIP);
- FastLED.addLeds<NEOPIXEL, ledPin2>(leds[1], NUM_LEDS_PER_STRIP);
- FastLED.addLeds<NEOPIXEL, ledPin3>(leds[2], NUM_LEDS_PER_STRIP);
- FastLED.addLeds<NEOPIXEL, ledPin4>(leds[3], NUM_LEDS_PER_STRIP);
+  pinMode(relayPin1, OUTPUT);
+  pinMode(relayPin2, OUTPUT);
+  pinMode(relayPin3, OUTPUT);
+  pinMode(relayPin4, OUTPUT);
+  pinMode(relayPin5, OUTPUT);
+  pinMode(relayPin6, OUTPUT);
 
- init_LEDs();
+  pinMode(potPin, INPUT);
+
+  digitalWrite(relayPin1, HIGH);//off
+  digitalWrite(relayPin2, HIGH);//off
+  digitalWrite(relayPin3, HIGH);//off
+  digitalWrite(relayPin4, HIGH);//off
+  digitalWrite(relayPin5, HIGH);//off
+  digitalWrite(relayPin6, HIGH);//off
+
+  FastLED.addLeds<NEOPIXEL, ledPin1>(leds[0], NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<NEOPIXEL, ledPin2>(leds[1], NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<NEOPIXEL, ledPin3>(leds[2], NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<NEOPIXEL, ledPin4>(leds[3], NUM_LEDS_PER_STRIP);
+
+  init_LEDs();
 }
 
+
 void loop() {
+
+  //    use_pot(); //for testing only
 
   for (int i = 0; i < 3; i++) {
     read_hall_sensor(i);
@@ -112,9 +142,23 @@ void loop() {
 
   get_myMaxRPM();
 
-  control_motor_speed();
+  update_motor_speed();
 
   update_LEDs();
+
+  update_flood_lights();
 }
+
+void use_pot() {
+  //    Serial.print("pot reading: ");
+  //    Serial.println(analogRead(potPin));
+
+  myRawMaxRPM = map(analogRead(potPin), 0, 1023, MINRPM, MAXRPM);
+  Serial.print("myRawMaxRPM: ");
+  Serial.print(myRawMaxRPM);
+  Serial.print("    ");
+}
+
+
 
 

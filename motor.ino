@@ -2,12 +2,12 @@ void read_hall_sensor(int i) {
 
   currVal[i] = digitalRead(i * 4 + 22);
 
-  Serial.print("hall: ");
-  for (int i=0; i<3; i++) {
-    Serial.print(currVal[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
+//  Serial.print("hall: ");
+//  for (int i=0; i<3; i++) {
+//    Serial.print(currVal[i]);
+//    Serial.print(" ");
+//  }
+//  Serial.println();
 
   if (currVal[i] == LOW && prevVal[i] == HIGH) { //positive hall detection
 
@@ -66,10 +66,13 @@ void get_myMaxRPM() {
   }
 
   myMaxRPM = constrain(myMaxRPM, MINRPM, MAXRPM);
-  myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 300); //600 is analog value for the motor controller for cruise speed, 300 for max speed
+  myRawMaxRPM = myMaxRPM;
+  //600 is analog value for the motor controller for cruise speed, 300 for max speed
+  //update: set to 400 for slower max speed to reduce mechanical vibration
+  myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400); 
 }
 
-void control_motor_speed() {
+void update_motor_speed() { //to the 28 ebike motor controllers
 
   if (myMaxRPM != myPrevMaxRPM) {
     analogWrite(motorPin1, myMaxRPM);

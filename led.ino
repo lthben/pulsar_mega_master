@@ -1,50 +1,89 @@
+int pulseBrightLevel;
+int pulseDir = 1;
+float wipeSpeed;
+float wipeColorIndex;
+
+const int PULSATE = 0;
+const int COLORWIPE = 1;
+
+//user settings
+int whichMode = PULSATE;
+const int MAXBRIGHTLEVEL = 128; //before visible voltage drop occurs
+CRGB pulseColor = CRGB(MAXBRIGHTLEVEL, MAXBRIGHTLEVEL, MAXBRIGHTLEVEL);
+
 void init_LEDs() {
 
-  int brightLevel = 32; //max seems to be 32 else will see voltage drop effect
-
-  show_default_white();
-
-  FastLED.setBrightness(brightLevel);
-  FastLED.show();
+  pulseBrightLevel = MAXBRIGHTLEVEL / 4;
 }
 
 void update_LEDs() {
 
-//  have some tolerance to create artificial delay() for the lights
-  if (myMaxRPM < myPrevMaxRPM - 5 || myMaxRPM > myPrevMaxRPM + 5) {
+  if (whichMode == PULSATE) {
 
-    int brightLevel = map(myMaxRPM, MINRPM, MAXRPM, 4, 32);
+    pulsate(pulseColor);
 
-    FastLED.setBrightness(brightLevel);
+  } else if (whichMode == COLORWIPE) {
 
-    if (myMaxRPM < MAXRPM) {  //default white
+    rainbowCycle();
+  }
 
-      pulsate_white();
+  if (myRawMaxRPM == MAXRPM) {
 
-    } else {
+    turn_off_leds();
 
-      rainbowCycle(); //special effect at max speed
-    }
-
-    myPrevMaxRPM   = myMaxRPM;
-    FastLED.show(); //always show something from the last state
-    
-  } 
+    isMaxSpeed = true;
+  }
 }
 
-int pulseDir = 1;
-int myBrightLevel = 0;
+void pulsate(CRGB _theColor) {
 
-void pulsate_white() { 
-    myBrightLevel += pulseDir;
-    if (myBrightLevel == 0 || myBrightLevel == 32)
-        pulseDir = -pulseDir;
-        
+  float pulseSpeed = map(myRawMaxRPM, MINRPM, MAXRPM, 1, 32);
+  pulseBrightLevel += (pulseDir * pulseSpeed);
+  
+  if (pulseBrightLevel <= 0) {
+    pulseBrightLevel = 0;
+    pulseDir = -pulseDir;
+  }
+  if ( pulseBrightLevel >= MAXBRIGHTLEVEL) {
+    pulseBrightLevel = MAXBRIGHTLEVEL;
+    pulseDir = -pulseDir;
+  }
+
   for (int x = 0; x < NUM_STRIPS; x++) {
     for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
-      leds[x][i] = CRGB::White;
+      leds[x][i] = _theColor;
     }
   }
+
+  FastLED.setBrightness(pulseBrightLevel);
+  FastLED.show();
+}
+
+void rainbowCycle() {    
+
+  wipeSpeed = map(myRawMaxRPM , MINRPM, MAXRPM, 5, 200);
+  wipeColorIndex += wipeSpeed / 10.0;
+  int myColorIndex = int(wipeColorIndex) % 255;
+  
+  Serial.print("wipeColorIndex: ");
+  Serial.print(wipeColorIndex);
+  Serial.println();
+    
+  for (int x = 0; x < NUM_STRIPS; x++) {
+    for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
+      leds[x][i] = Wheel(myColorIndex);
+    }
+  }
+  FastLED.show();
+}
+
+void turn_off_leds() {
+  for (int x = 0; x < NUM_STRIPS; x++) {
+    for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
+      leds[x][i] = CRGB(0, 0, 0);
+    }
+  }
+  FastLED.show();
 }
 
 void show_default_white() {
@@ -53,36 +92,54 @@ void show_default_white() {
       leds[x][i] = CRGB::White;
     }
   }
-}
-
-// this makes the rainbow equally distributed throughout
-void rainbowCycle() {
-  uint16_t i, j;
-
-  for (int x = 0; x < NUM_STRIPS; x++) {
-    for (j = 0; j < 256 * 5; j++) { // 5 cycles of all colors on wheel
-      for (i = 0; i < NUM_LEDS_PER_STRIP; i++) {
-        leds[x][i] = CRGB(Wheel(((i * 256 / NUM_LEDS_PER_STRIP) + j) & 255));
-      }
-    }
-  }
+  FastLED.show();
 }
 
 
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
+CRGB Wheel(int WheelPos) {
 
   WheelPos = 255 - WheelPos;
+
   if (WheelPos < 85) {
+//    Serial.println("return 0");
     return CRGB(255 - WheelPos * 3, 0, WheelPos * 3);
   }
   if (WheelPos < 170) {
     WheelPos -= 85;
+//    Serial.println("return 1");
     return CRGB(0, WheelPos * 3, 255 - WheelPos * 3);
   }
+
   WheelPos -= 170;
+
+//  Serial.println("return 2");
   return CRGB(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+void update_flood_lights() {
+
+  if (isMaxSpeed == true) {
+
+    digitalWrite(relayPin1, LOW); //turn on all flood lights
+    digitalWrite(relayPin2, LOW);
+    digitalWrite(relayPin3, LOW);
+    digitalWrite(relayPin4, LOW);
+    digitalWrite(relayPin5, LOW);
+    digitalWrite(relayPin6, LOW);
+
+    delay(5000); //stop everything
+
+    isMaxSpeed = false;
+
+    digitalWrite(relayPin1, HIGH); //turn off
+    digitalWrite(relayPin2, HIGH);
+    digitalWrite(relayPin3, HIGH);
+    digitalWrite(relayPin4, HIGH);
+    digitalWrite(relayPin5, HIGH);
+    digitalWrite(relayPin6, HIGH);
+  }
 }
 
 
