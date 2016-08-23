@@ -12,12 +12,14 @@
 
        Three bicycles placed at the bottom of a 'tree'. User cycles any of these to trigger the
        28 x ebike wheels on top of the tree to go faster and 4 x 4m led strips to react in
-       brightness and color.
+       brightness and color. At max RPM speed, the led strips will turn off and 
+       the flood lights turn on.
 
        The master mega reads the three hall sensor values and and sends it to the slave
        via pwm output to an analog input pin on the slave mega. The master also controls
        the 4 strips of LEDs. The master and slave mega each only has 15 pwn pins
-       to control 14 motor controllers each. The slave just controls 14 motor controllers.
+       to control 14 motor controllers each. All the slave does is to control 14 
+       motor controllers.
 
        PWM pins 2, ..., 13, 38, 44, 45, 46
 
@@ -25,11 +27,11 @@
 */
 #include "FastLED.h"
 
-#define hallPin1 22
+#define hallPin1 22 //hall sensor
 #define hallPin2 26
 #define hallPin3 30
 
-#define motorPin1 2
+#define motorPin1 2 //ebike motor controller
 #define motorPin2 3
 #define motorPin3 4
 #define motorPin4 5
@@ -46,12 +48,12 @@
 
 #define motorOutPin 46 //to the slave Mega
 
-#define ledPin1 23
+#define ledPin1 23 //data pin of the led strips
 #define ledPin2 24
 #define ledPin3 25
 #define ledPin4 27
 
-#define relayPin1 48
+#define relayPin1 48 //to control the flood lights
 #define relayPin2 49
 #define relayPin3 50
 #define relayPin4 51
@@ -60,8 +62,8 @@
 
 #define potPin A0 //for testing only, simulates the maxRPM
 
-#define NUM_STRIPS 4
-#define NUM_LEDS_PER_STRIP 300 //mix of 4m and 5m, 60 leds per m
+#define NUM_STRIPS 1
+#define NUM_LEDS_PER_STRIP 30 //mix of 4m and 5m, 60 leds per m
 CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
 
 CRGB strip1[NUM_LEDS_PER_STRIP];
@@ -78,6 +80,15 @@ long oneRevTimeInterval[3], timeInterval[3];
 #define MINRPM 20 //min speed below which will read as an off signal
 
 bool isMaxSpeed; //whether user has triggered max speed RPM
+
+/*
+ * Testing parameters:
+ *      use_pot() 
+ *          if (myRawMaxRPM > MAXRPM - 10) in update_LEDs()
+ *      NUMSTRIPS 
+ *      NUM_LEDS_PER_STRIP
+ *  
+ */
 
 void setup() {
 
@@ -127,20 +138,15 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, ledPin3>(leds[2], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<NEOPIXEL, ledPin4>(leds[3], NUM_LEDS_PER_STRIP);
 
-  init_LEDs();
+  turn_off_leds();
 }
 
 
 void loop() {
 
-  //    use_pot(); //for testing only
+  use_pot(); //for simulation only
 
-  for (int i = 0; i < 3; i++) {
-    read_hall_sensor(i);
-    calc_RPM(i);
-  }
-
-  get_myMaxRPM();
+//  calc_RPM(); //from hall sensor
 
   update_motor_speed();
 
@@ -149,15 +155,7 @@ void loop() {
   update_flood_lights();
 }
 
-void use_pot() {
-  //    Serial.print("pot reading: ");
-  //    Serial.println(analogRead(potPin));
 
-  myRawMaxRPM = map(analogRead(potPin), 0, 1023, MINRPM, MAXRPM);
-  Serial.print("myRawMaxRPM: ");
-  Serial.print(myRawMaxRPM);
-  Serial.print("    ");
-}
 
 
 

@@ -1,3 +1,22 @@
+void use_pot() { //for simulation only
+  //    Serial.print("pot reading: ");
+  //    Serial.println(analogRead(potPin));
+
+  myRawMaxRPM = map(analogRead(potPin), 0, 1023, MINRPM, MAXRPM);
+
+//  Serial.print("myRawMaxRPM: ");
+//  Serial.println(myRawMaxRPM);
+}
+
+void calc_RPM() {
+    for (int i = 0; i < 3; i++) {
+    read_hall_sensor(i);
+    get_RPM(i);
+  }
+
+  get_myMaxRPM();
+}
+
 void read_hall_sensor(int i) {
 
   currVal[i] = digitalRead(i * 4 + 22);
@@ -23,7 +42,7 @@ void read_hall_sensor(int i) {
   prevVal[i] = currVal[i];
 }
 
-void calc_RPM(int i) {
+void get_RPM(int i) {
 
   timeInterval[i] = millis() - prevReadTime[i]; //independent of whether triggered or not
 
