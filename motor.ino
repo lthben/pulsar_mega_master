@@ -1,3 +1,9 @@
+const int SINGLEMAXRPM = 1; //triggered by the max rpm of three bicycles
+const int COMBINEDRPM = 2; //triggered by the combined rpm 
+
+//user settings
+int whichMotorMode = SINGLEMAXRPM;
+
 void use_pot() { //for simulation only
   //    Serial.print("pot reading: ");
   //    Serial.println(analogRead(potPin));
@@ -14,7 +20,11 @@ void calc_RPM() {
     get_RPM(i);
   }
 
-  get_myMaxRPM();
+  if (whichMotorMode == SINGLEMAXRPM) {
+    get_mySingleMaxRPM();
+  } else {
+    get_myAverageRPM();
+  }
 }
 
 void read_hall_sensor(int i) {
@@ -65,7 +75,7 @@ void get_RPM(int i) {
   }
 }
 
-void get_myMaxRPM() {
+void get_mySingleMaxRPM() {
 
 //      Serial.print("RPM ");
 //      for (int i=0; i<3; i++) {
@@ -89,6 +99,14 @@ void get_myMaxRPM() {
   //600 is analog value for the motor controller for cruise speed, 300 for max speed
   //update: set to 400 for slower max speed to reduce mechanical vibration
   myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400); 
+}
+
+void get_myAverageRPM() {
+    
+    myMaxRPM = (RPM[0] + RPM[1] + RPM[2]) / 3;
+    myMaxRPM = constrain(myMaxRPM, MINRPM, MAXRPM);
+    myRawMaxRPM = myMaxRPM;
+    myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400); 
 }
 
 void update_motor_speed() { //to the 28 ebike motor controllers

@@ -72,22 +72,26 @@ CRGB strip3[NUM_LEDS_PER_STRIP];
 CRGB strip4[NUM_LEDS_PER_STRIP];
 
 int currVal[3], prevVal[3], counter[3];
-int RPM[3], myMaxRPM, myPrevMaxRPM, myRawMaxRPM;
+int RPM[3], //individual RPM for the three bicycles
+myMaxRPM, //the mapped analog value form the RawMaxRPM to be written to the motor controllers
+myPrevMaxRPM, 
+myRawMaxRPM; //the actual Max RPM constrained between MINRPM and MAXRPM
 long isTriggeredTime[3], prevReadTime[3];
 long oneRevTimeInterval[3], timeInterval[3];
 
+bool isMaxSpeed; //whether user has triggered max speed RPM
+
+//user settings
 #define MAXRPM 100 //max speed of use bicycle needed to trigger max speed for pov
 #define MINRPM 20 //min speed below which will read as an off signal
-
-bool isMaxSpeed; //whether user has triggered max speed RPM
 
 /*
  * Testing parameters:
  *      use_pot() 
- *          if (myRawMaxRPM > MAXRPM - 10) in update_LEDs()
+ *      calc_RPM();
+ *      if (myRawMaxRPM > MAXRPM - 10) in update_LEDs()
  *      NUMSTRIPS 
  *      NUM_LEDS_PER_STRIP
- *  
  */
 
 void setup() {
