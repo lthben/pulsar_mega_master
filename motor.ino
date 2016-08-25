@@ -1,52 +1,63 @@
 const int SINGLEMAXRPM = 1; //triggered by the max rpm of three bicycles
-const int COMBINEDRPM = 2; //triggered by the combined rpm 
+const int COMBINEDRPM = 2; //triggered by the combined rpm
 
 //user settings
 int whichMotorMode = SINGLEMAXRPM;
 
-void use_pot() { //for simulation only
-  //    Serial.print("pot reading: ");
-  //    Serial.println(analogRead(potPin));
-
-  myRawMaxRPM = map(analogRead(potPin), 0, 1023, MINRPM, MAXRPM);
-
-//  Serial.print("myRawMaxRPM: ");
-//  Serial.println(myRawMaxRPM);
-}
-
 void calc_RPM() {
-    for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     read_hall_sensor(i);
+
+//    print_hall(i); //for debugging
+
     get_RPM(i);
   }
 
+//  print_counter();//for debugging
+
+//  print_RPM();//for debugging
+
   if (whichMotorMode == SINGLEMAXRPM) {
     get_mySingleMaxRPM();
-  } else {
+  } else if (whichMotorMode == COMBINEDRPM) {
     get_myAverageRPM();
   }
+}
+
+void print_hall(int _i) {
+  Serial.print("hall[");
+  Serial.print(_i);
+  Serial.print("]: ");
+  Serial.print(currVal[_i]);
+  Serial.print(" ");
+}
+
+void print_counter() {
+  Serial.print("counter: ");
+  for (int i = 0; i < 3; i++) {
+    Serial.print(counter[i]);
+    Serial.print(" ");
+  }
+  Serial.print(" ");
+}
+
+void print_RPM() {
+  Serial.print("RPM: ");
+  for (int i = 0; i < 3; i++) {
+    Serial.print(RPM[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
 }
 
 void read_hall_sensor(int i) {
 
   currVal[i] = digitalRead(i * 4 + 22);
 
-//  Serial.print("hall: ");
-//  for (int i=0; i<3; i++) {
-//    Serial.print(currVal[i]);
-//    Serial.print(" ");
-//  }
-//  Serial.println();
-
   if (currVal[i] == LOW && prevVal[i] == HIGH) { //positive hall detection
 
     counter[i]++;
     isTriggeredTime[i] = millis();
-
-//        Serial.print("counter ");
-//        Serial.print(i*4 + 22);
-//        Serial.print(": ");
-//        Serial.println(counter[i]);
   }
 
   prevVal[i] = currVal[i];
@@ -66,23 +77,12 @@ void get_RPM(int i) {
 
   }
 
-  if (timeInterval[i] > 5000) {
-    /*
-       ideally the bike wheel should slow down instead of abruptly stopping,
-       but just in case
-    */
+  if (timeInterval[i] > 5000) { //ideally the bike wheel should slow down instead of abruptly stopping, but just in case
     RPM[i] = 0;
   }
 }
 
 void get_mySingleMaxRPM() {
-
-//      Serial.print("RPM ");
-//      for (int i=0; i<3; i++) {
-//          Serial.print(RPM[i]);
-//          Serial.print(" ");
-//      }
-//      Serial.println();
 
   if ( RPM[0] > RPM[1] ) {
     myMaxRPM = RPM[0];
@@ -98,18 +98,19 @@ void get_mySingleMaxRPM() {
   myRawMaxRPM = myMaxRPM;
   //600 is analog value for the motor controller for cruise speed, 300 for max speed
   //update: set to 400 for slower max speed to reduce mechanical vibration
-  myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400); 
+  myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400);
 }
 
 void get_myAverageRPM() {
-    
-    myMaxRPM = (RPM[0] + RPM[1] + RPM[2]) / 3;
-    myMaxRPM = constrain(myMaxRPM, MINRPM, MAXRPM);
-    myRawMaxRPM = myMaxRPM;
-    myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400); 
+
+  myMaxRPM = (RPM[0] + RPM[1] + RPM[2]) / 3;
+  myMaxRPM = constrain(myMaxRPM, MINRPM, MAXRPM);
+  myRawMaxRPM = myMaxRPM;
+  myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400);
 }
 
-void update_motor_speed() { //to the 28 ebike motor controllers
+void update_motor_speed() {
+  //to the 28 ebike motor controllers
 
   if (myMaxRPM != myPrevMaxRPM) {
     analogWrite(motorPin1, myMaxRPM);
@@ -131,4 +132,16 @@ void update_motor_speed() { //to the 28 ebike motor controllers
   }
   myPrevMaxRPM = myMaxRPM;
 }
+
+void use_pot() { //for simulation only
+
+  //    Serial.print("pot reading: ");
+  //    Serial.println(analogRead(potPin));
+
+  myRawMaxRPM = map(analogRead(potPin), 0, 1023, MINRPM, MAXRPM);
+
+  //  Serial.print("myRawMaxRPM: ");
+  //  Serial.println(myRawMaxRPM);
+}
+
 

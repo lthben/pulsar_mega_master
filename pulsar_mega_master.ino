@@ -12,13 +12,13 @@
 
        Three bicycles placed at the bottom of a 'tree'. User cycles any of these to trigger the
        28 x ebike wheels on top of the tree to go faster and 4 x 4m led strips to react in
-       brightness and color. At max RPM speed, the led strips will turn off and 
+       brightness and color. At max RPM speed, the led strips will turn off and
        the flood lights turn on.
 
        The master mega reads the three hall sensor values and and sends it to the slave
        via pwm output to an analog input pin on the slave mega. The master also controls
        the 4 strips of LEDs. The master and slave mega each only has 15 pwn pins
-       to control 14 motor controllers each. All the slave does is to control 14 
+       to control 14 motor controllers each. All the slave does is to control 14
        motor controllers.
 
        PWM pins 2, ..., 13, 38, 44, 45, 46
@@ -62,8 +62,8 @@
 
 #define potPin A0 //for testing only, simulates the maxRPM
 
-#define NUM_STRIPS 1
-#define NUM_LEDS_PER_STRIP 30 //mix of 4m and 5m, 60 leds per m
+#define NUM_STRIPS 4
+#define NUM_LEDS_PER_STRIP 300//mix of 4m and 5m, 60 leds per m
 CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
 
 CRGB strip1[NUM_LEDS_PER_STRIP];
@@ -73,26 +73,20 @@ CRGB strip4[NUM_LEDS_PER_STRIP];
 
 int currVal[3], prevVal[3], counter[3];
 int RPM[3], //individual RPM for the three bicycles
-myMaxRPM, //the mapped analog value form the RawMaxRPM to be written to the motor controllers
-myPrevMaxRPM, 
-myRawMaxRPM; //the actual Max RPM constrained between MINRPM and MAXRPM
+    myMaxRPM, //the mapped analog value from the RawMaxRPM to be written to the motor controllers
+    myPrevMaxRPM,
+    myRawMaxRPM; //the actual Max RPM constrained between MINRPM and MAXRPM
 long isTriggeredTime[3], prevReadTime[3];
 long oneRevTimeInterval[3], timeInterval[3];
 
-bool isMaxSpeed; //whether user has triggered max speed RPM
-
-//user settings
-#define MAXRPM 100 //max speed of use bicycle needed to trigger max speed for pov
-#define MINRPM 20 //min speed below which will read as an off signal
-
 /*
- * Testing parameters:
- *      use_pot() 
- *      calc_RPM();
- *      if (myRawMaxRPM > MAXRPM - 10) in update_LEDs()
- *      NUMSTRIPS 
- *      NUM_LEDS_PER_STRIP
- */
+   Testing parameters:
+        use_pot()
+        calc_RPM();
+        if (myRawMaxRPM > MAXRPM - 10) in update_LEDs()
+        NUMSTRIPS
+        NUM_LEDS_PER_STRIP
+*/
 
 void setup() {
 
@@ -142,15 +136,15 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, ledPin3>(leds[2], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<NEOPIXEL, ledPin4>(leds[3], NUM_LEDS_PER_STRIP);
 
-  turn_off_leds();
+  init_LEDs();
 }
 
 
 void loop() {
 
-  use_pot(); //for simulation only
+  //  use_pot(); //for testing simulation only
 
-//  calc_RPM(); //from hall sensor
+  calc_RPM(); //from hall sensor
 
   update_motor_speed();
 

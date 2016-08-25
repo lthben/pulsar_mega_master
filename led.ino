@@ -2,54 +2,96 @@ float pulseBrightLevel;
 int pulseDir = 1;
 float wipeColorIndex;
 
+//light modes that vary with MaxRPM
 const int PULSATE = 0;
-const int COLORWIPE = 1;
+const int RAINBOWCYCLE = 1;
+const int VUMETER = 3; //volume meter light effect with buildup over time
 
-long isMaxSpeedTime; //when max speed is triggered;
-bool isFloodLightOn;
+long isMaxSpeedTriggeredTime, //when the flood lights are triggered
+     isFirstMaxSpeedTime; //when max speed is first triggered;
+bool isMaxSpeed, //whether user has triggered max speed RPM
+     hasFirstMaxSpeedTriggered,
+     isFloodLightOn;
 
 //user settings
-int whichLEDMode = COLORWIPE;
+int whichLEDMode = VUMETER;
 const int MAXBRIGHTLEVEL = 128; //before visible voltage drop occurs
-CRGB pulseColor = CRGB(MAXBRIGHTLEVEL, MAXBRIGHTLEVEL, MAXBRIGHTLEVEL); //the colour for the pulse mode 
+CRGB pulseColor = CRGB(128, 128, 128); //the colour for the pulse mode
 const int TEMPDURATION = 5000; //duration in ms the flood lights is turned on temporarily
+const int PLAYDURATION = 15000;//duration for play mode before the flood lights can be triggered
+#define MAXRPM 150 //max speed of use bicycle needed to trigger max speed for pov
+#define MINRPM 20 //min speed below which will read as an off signal
+
+void init_LEDs() {
+  turn_off_leds();
+}
 
 void update_LEDs() {
 
-  if (millis() - isMaxSpeedTime > TEMPDURATION) {
+  if (millis() - isMaxSpeedTriggeredTime > TEMPDURATION) { //only after the flood lights have turned on for TEMPDURATION
 
-    if (myRawMaxRPM > MAXRPM - 10) {
+    if (myRawMaxRPM == MAXRPM) {
 
-      turn_off_leds();
+      if (!hasFirstMaxSpeedTriggered) {
 
-      isMaxSpeed = true;
+        hasFirstMaxSpeedTriggered = true;
+        isFirstMaxSpeedTime = millis();
 
-      isMaxSpeedTime = millis();
+        Serial.println("first max speed triggered");
 
-      Serial.println();
-      Serial.println("isMaxSpeed triggered");
-      Serial.println();
+      } else { //first max speed has triggered
 
-    } else { //below max speed
+        if (millis() - isFirstMaxSpeedTime > PLAYDURATION) { //user has played for more then PLAYDURATION
 
-      isMaxSpeed = false;
+          isMaxSpeed = true;
 
-      if (whichLEDMode == PULSATE) {
+          isMaxSpeedTriggeredTime = millis();
 
-        pulsate(pulseColor);
+          Serial.println();
+          Serial.println("isMaxSpeed triggered");
+          Serial.println();
 
-      } else if (whichLEDMode == COLORWIPE) {
+        } else { //less than PLAYDURATION
 
-        rainbowCycle();
+          play_with_leds_normally();
+        }
+      }
+    } else { //less than MAXRPM
+
+      if (!hasFirstMaxSpeedTriggered) {
+        
+        turn_off_leds();
+      
+      } else {
+        
+        isMaxSpeed = false;
+
+        play_with_leds_normally();
       }
     }
   }
 }
 
+void play_with_leds_normally() {
+
+  if (whichLEDMode == PULSATE) {
+
+    pulsate(pulseColor);
+
+  } else if (whichLEDMode == RAINBOWCYCLE) {
+
+    rainbowCycle();
+
+  } else if (whichLEDMode == VUMETER) {
+
+    vumeter();
+  }
+}
+
 void pulsate(CRGB _theColor) {
 
-  float pulseSpeed = map(myRawMaxRPM, MINRPM, MAXRPM, 1, 20); //set the pulse speed range here, integer values only
-  pulseBrightLevel += (pulseDir * pulseSpeed) / 10.0; //can also set the speed here
+  float pulseSpeed = map(myRawMaxRPM, MINRPM, MAXRPM, 2, 50); //set the pulse speed range here, integer values only
+  pulseBrightLevel += (pulseDir * pulseSpeed); //can also set the speed here
 
   if (pulseBrightLevel <= 0) {
     pulseBrightLevel = 0;
@@ -72,8 +114,8 @@ void pulsate(CRGB _theColor) {
 
 void rainbowCycle() {
 
-  float wipeSpeed = map(myRawMaxRPM , MINRPM, MAXRPM, 1, 20); //set the colorwipe speed range here, integer values only
-  wipeColorIndex += wipeSpeed / 10.0; //can also set the speed here
+  float wipeSpeed = map(myRawMaxRPM , MINRPM, MAXRPM, 1, 60); //set the colorwipe speed range here, integer values only
+  wipeColorIndex += wipeSpeed / 1.8; //can also set the speed here
   int myColorIndex = int(wipeColorIndex) % 255;
 
   //  Serial.print("wipeColorIndex: ");
@@ -88,6 +130,31 @@ void rainbowCycle() {
   FastLED.show();
 }
 
+void vumeter() {
+
+  if (hasFirstMaxSpeedTriggered) {
+
+    float wipeSpeed = map(myRawMaxRPM , MINRPM, MAXRPM, 1, 60); //set the colorwipe speed range here, integer values only
+    wipeColorIndex += wipeSpeed / 1.8; //can also set the speed here
+    int myColorIndex = int(wipeColorIndex) % 255;
+
+    int num_leds_per_strip = int ( ( (millis() - isFirstMaxSpeedTime) * 1.0 / PLAYDURATION ) * NUM_LEDS_PER_STRIP);
+    num_leds_per_strip = constrain(num_leds_per_strip, 0, NUM_LEDS_PER_STRIP);
+
+    //    Serial.print("num_leds_per_strip: ");
+    //    Serial.println(num_leds_per_strip);
+
+    for (int x = 0; x < NUM_STRIPS; x++) {
+      for (int i = 0; i < num_leds_per_strip; i++) {
+        leds[x][i] = Wheel(myColorIndex);
+      }
+    }
+    FastLED.show();
+  } else {
+    turn_off_leds();
+  }
+}
+
 void turn_off_leds() {
   for (int x = 0; x < NUM_STRIPS; x++) {
     for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
@@ -100,7 +167,7 @@ void turn_off_leds() {
 void show_default_white() {
   for (int x = 0; x < NUM_STRIPS; x++) {
     for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
-      leds[x][i] = CRGB::White;
+      leds[x][i] = CRGB(MAXBRIGHTLEVEL, MAXBRIGHTLEVEL, MAXBRIGHTLEVEL);
     }
   }
   FastLED.show();
@@ -128,6 +195,14 @@ CRGB Wheel(int WheelPos) {
 
 void update_flood_lights() {
 
+  if (isMaxSpeed == true) {
+
+    if (millis() - isMaxSpeedTriggeredTime > 500) { //flood lights takes about a sec to turn on
+
+      turn_off_leds();
+    }
+  }
+
   if (isMaxSpeed == true && isFloodLightOn == false) {
 
     digitalWrite(relayPin1, LOW); //relay is active low. Turn on all flood lights.
@@ -139,9 +214,9 @@ void update_flood_lights() {
 
     isFloodLightOn = true;
 
-    //      Serial.println();
-    //      Serial.println("    flood light on    ");
-    //      Serial.println();
+    Serial.println();
+    Serial.println("    flood light on    ");
+    Serial.println();
   }
 
   if (isMaxSpeed == false && isFloodLightOn == true) {
@@ -155,9 +230,12 @@ void update_flood_lights() {
 
     isFloodLightOn = false;
 
-    //      Serial.println();
-    //      Serial.println("    flood light off    ");
-    //      Serial.println();
+    hasFirstMaxSpeedTriggered = false;
+    wipeColorIndex = 0.0; //prevent buffer overflow
+
+    Serial.println();
+    Serial.println("    flood light off    ");
+    Serial.println();
   }
 }
 
