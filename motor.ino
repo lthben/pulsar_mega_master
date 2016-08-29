@@ -5,7 +5,9 @@ const int COMBINEDRPM = 2; //triggered by the combined rpm
 int whichMotorMode = SINGLEMAXRPM;
 
 void calc_RPM() {
+    
   for (int i = 0; i < 3; i++) {
+    
     read_hall_sensor(i);
 
 //    print_hall(i); //for debugging

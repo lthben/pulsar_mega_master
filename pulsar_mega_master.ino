@@ -79,14 +79,6 @@ int RPM[3], //individual RPM for the three bicycles
 long isTriggeredTime[3], prevReadTime[3];
 long oneRevTimeInterval[3], timeInterval[3];
 
-/*
-   Testing parameters:
-        use_pot()
-        calc_RPM();
-        if (myRawMaxRPM > MAXRPM - 10) in update_LEDs()
-        NUMSTRIPS
-        NUM_LEDS_PER_STRIP
-*/
 
 void setup() {
 
