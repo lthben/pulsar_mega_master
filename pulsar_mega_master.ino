@@ -7,60 +7,61 @@
 
        Code for an Arduino Mega master.
 
-       For a Night Festival 2016 installation at the National Museum of Singapore
-       called 'Into Pulsar' by artist Ryf Zaini.
+       For a month-long installation at the National Museum of Singapore called 'Into Pulsar'
+       by artist Ryf Zaini. This version is different from the earlier Night Fest version
+       and does not have LED lights.
 
        Three bicycles placed at the bottom of a 'tree'. User cycles any of these to trigger the
-       28 x ebike wheels on top of the tree to go faster and 4 x 4m led strips to react in
-       brightness and color. At max RPM speed, the led strips will turn off and
-       the flood lights turn on.
+       28 x ebike wheels on top of the tree to go faster. As the user continues cycling, in a
+       span of 20 seconds, 5 more relays will be triggered in sequence to activate the bicycle
+       gears and sprockets to make the installation come alive progressively. At the end of 20
+       seconds, the flood lights will turn on for about 8 seconds.
 
-       The master mega reads the three hall sensor values and and sends it to the slave
-       via pwm output to an analog input pin on the slave mega. The master also controls
-       the 4 strips of LEDs. The master and slave mega each only has 15 pwn pins
-       to control 14 motor controllers each. All the slave does is to control 14
-       motor controllers.
+       The 28 ebike motor controllers are controlled via 14 PWM pins on the master mega. One pin
+       for 2 controllers. Hence there is no client mega.
 
        PWM pins 2, ..., 13, 38, 44, 45, 46
 
-       Cannot have delay() in program else rpm calculation will be affected
+       Note: Cannot have delay() in program else rpm calculation will be affected
+             Comment out all Serial.print() statements to free up processor speed when deployed 
 */
-#include "FastLED.h"
 
 #define hallPin1 22 //hall sensor
 #define hallPin2 26
 #define hallPin3 30
-
-#define motorPin1 2 //ebike motor controller
-#define motorPin2 3
-#define motorPin3 4
-#define motorPin4 5
-#define motorPin5 6
-#define motorPin6 7
-#define motorPin7 8
-#define motorPin8 9
-#define motorPin9 10
-#define motorPin10 11
-#define motorPin11 12
-#define motorPin12 13
-#define motorPin13 44
-#define motorPin14 45
-
-#define motorOutPin 46 //to the slave Mega
 
 #define ledPin1 23 //data pin of the led strips
 #define ledPin2 24
 #define ledPin3 25
 #define ledPin4 27
 
-#define relayPin1 48 //to control the flood lights
-#define relayPin2 49
-#define relayPin3 50
-#define relayPin4 51
-#define relayPin5 52
-#define relayPin6 53
+#define ebikePin1 2 //ebike motor controller
+#define ebikePin2 3
+#define ebikePin3 4
+#define ebikePin4 5
+#define ebikePin5 6
+#define ebikePin6 7
+#define ebikePin7 8
+#define ebikePin8 9
+#define ebikePin9 10
+#define ebikePin10 11
+#define ebikePin11 12
+#define ebikePin12 13
+#define ebikePin13 44
+#define ebikePin14 45
+
+#define floodRelayPin1 47 //flood lights
+#define floodRelayPin2 48
+
+#define motorRelayPin1 49 //dc motors
+#define motorRelayPin2 50
+#define motorRelayPin3 51
+#define motorRelayPin4 52
+#define motorRelayPin5 53
 
 #define potPin A0 //for testing only, simulates the maxRPM
+
+#include "FastLED.h"
 
 #define NUM_STRIPS 4
 #define NUM_LEDS_PER_STRIP 300//mix of 4m and 5m, 60 leds per m
@@ -71,15 +72,6 @@ CRGB strip2[NUM_LEDS_PER_STRIP];
 CRGB strip3[NUM_LEDS_PER_STRIP];
 CRGB strip4[NUM_LEDS_PER_STRIP];
 
-int currVal[3], prevVal[3], counter[3];
-int RPM[3], //individual RPM for the three bicycles
-    myMaxRPM, //the mapped analog value from the RawMaxRPM to be written to the motor controllers
-    myPrevMaxRPM,
-    myRawMaxRPM; //the actual Max RPM constrained between MINRPM and MAXRPM
-long isTriggeredTime[3], prevReadTime[3];
-long oneRevTimeInterval[3], timeInterval[3];
-
-
 void setup() {
 
   Serial.begin(9600);
@@ -87,41 +79,45 @@ void setup() {
   pinMode(hallPin1, INPUT_PULLUP);
   pinMode(hallPin2, INPUT_PULLUP);
   pinMode(hallPin3, INPUT_PULLUP);
-  pinMode(motorPin1, OUTPUT);
-  pinMode(motorPin2, OUTPUT);
-  pinMode(motorPin3, OUTPUT);
-  pinMode(motorPin4, OUTPUT);
-  pinMode(motorPin5, OUTPUT);
-  pinMode(motorPin6, OUTPUT);
-  pinMode(motorPin7, OUTPUT);
-  pinMode(motorPin8, OUTPUT);
-  pinMode(motorPin9, OUTPUT);
-  pinMode(motorPin10, OUTPUT);
-  pinMode(motorPin11, OUTPUT);
-  pinMode(motorPin12, OUTPUT);
-  pinMode(motorPin13, OUTPUT);
-  pinMode(motorPin14, OUTPUT);
-  pinMode(motorOutPin, OUTPUT);
-  pinMode(ledPin1, OUTPUT);
+  
+  pinMode(ebikePin1, OUTPUT);
+  pinMode(ebikePin2, OUTPUT);
+  pinMode(ebikePin3, OUTPUT);
+  pinMode(ebikePin4, OUTPUT);
+  pinMode(ebikePin5, OUTPUT);
+  pinMode(ebikePin6, OUTPUT);
+  pinMode(ebikePin7, OUTPUT);
+  pinMode(ebikePin8, OUTPUT);
+  pinMode(ebikePin9, OUTPUT);
+  pinMode(ebikePin10, OUTPUT);
+  pinMode(ebikePin11, OUTPUT);
+  pinMode(ebikePin12, OUTPUT);
+  pinMode(ebikePin13, OUTPUT);
+  pinMode(ebikePin14, OUTPUT);
+
+   pinMode(ledPin1, OUTPUT);
   pinMode(ledPin2, OUTPUT);
   pinMode(ledPin3, OUTPUT);
   pinMode(ledPin4, OUTPUT);
 
-  pinMode(relayPin1, OUTPUT);
-  pinMode(relayPin2, OUTPUT);
-  pinMode(relayPin3, OUTPUT);
-  pinMode(relayPin4, OUTPUT);
-  pinMode(relayPin5, OUTPUT);
-  pinMode(relayPin6, OUTPUT);
+  pinMode(floodRelayPin1, OUTPUT); 
+  pinMode(floodRelayPin2, OUTPUT);
+  
+  pinMode(motorRelayPin1, OUTPUT);
+  pinMode(motorRelayPin2, OUTPUT);
+  pinMode(motorRelayPin3, OUTPUT);
+  pinMode(motorRelayPin4, OUTPUT);
+  pinMode(motorRelayPin5, OUTPUT);
 
   pinMode(potPin, INPUT);
 
-  digitalWrite(relayPin1, HIGH);//off
-  digitalWrite(relayPin2, HIGH);//off
-  digitalWrite(relayPin3, HIGH);//off
-  digitalWrite(relayPin4, HIGH);//off
-  digitalWrite(relayPin5, HIGH);//off
-  digitalWrite(relayPin6, HIGH);//off
+  digitalWrite(floodRelayPin1, HIGH);//turn off as all relays are active low
+  digitalWrite(floodRelayPin2, HIGH);
+  digitalWrite(motorRelayPin1, HIGH);
+  digitalWrite(motorRelayPin2, HIGH);
+  digitalWrite(motorRelayPin3, HIGH);
+  digitalWrite(motorRelayPin4, HIGH);
+  digitalWrite(motorRelayPin5, HIGH);
 
   FastLED.addLeds<NEOPIXEL, ledPin1>(leds[0], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<NEOPIXEL, ledPin2>(leds[1], NUM_LEDS_PER_STRIP);
@@ -138,11 +134,11 @@ void loop() {
 
   calc_RPM(); //from hall sensor
 
-  update_motor_speed();
+  update_ebike_speed();//ebike
 
   update_LEDs();
 
-  update_flood_lights();
+  update_relays();//motors for the gears and sprockets, as well as flood lights
 }
 
 

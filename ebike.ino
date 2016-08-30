@@ -1,27 +1,38 @@
+int currVal[3], prevVal[3], counter[3];
+int RPM[3], //individual RPM for the three bicycles
+    myMaxRPM, //the mapped analog value from the RawMaxRPM to be written to the motor controllers
+    myPrevMaxRPM,
+    myRawMaxRPM; //the actual Max RPM constrained between MINRPM and MAXRPM
+long isTriggeredTime[3], prevReadTime[3];
+long oneRevTimeInterval[3], timeInterval[3];
+
 const int SINGLEMAXRPM = 1; //triggered by the max rpm of three bicycles
 const int COMBINEDRPM = 2; //triggered by the combined rpm
 
 //user settings
-int whichMotorMode = SINGLEMAXRPM;
+const int WHICHMOTORMODE = SINGLEMAXRPM; //safer choice in case of hall sensor breakdown
+const int MINRPM = 20, MAXRPM = 100;
+
+bool isDebugRPM = false;
 
 void calc_RPM() {
-    
+
   for (int i = 0; i < 3; i++) {
-    
+
     read_hall_sensor(i);
 
-//    print_hall(i); //for debugging
+    if (isDebugRPM) print_hall(i); //for debugging
 
     get_RPM(i);
   }
 
-//  print_counter();//for debugging
+  if (isDebugRPM) print_counter();//for debugging
 
-//  print_RPM();//for debugging
+  if (isDebugRPM) print_RPM();//for debugging
 
-  if (whichMotorMode == SINGLEMAXRPM) {
+  if (WHICHMOTORMODE == SINGLEMAXRPM) {
     get_mySingleMaxRPM();
-  } else if (whichMotorMode == COMBINEDRPM) {
+  } else if (WHICHMOTORMODE == COMBINEDRPM) {
     get_myAverageRPM();
   }
 }
@@ -79,7 +90,7 @@ void get_RPM(int i) {
 
   }
 
-  if (timeInterval[i] > 5000) { //ideally the bike wheel should slow down instead of abruptly stopping, but just in case
+  if (timeInterval[i] > 3000) { //ideally the bike wheel should slow down instead of abruptly stopping, but just in case
     RPM[i] = 0;
   }
 }
@@ -111,26 +122,24 @@ void get_myAverageRPM() {
   myMaxRPM = map(myMaxRPM, MINRPM, MAXRPM, 600, 400);
 }
 
-void update_motor_speed() {
+void update_ebike_speed() {
   //to the 28 ebike motor controllers
 
   if (myMaxRPM != myPrevMaxRPM) {
-    analogWrite(motorPin1, myMaxRPM);
-    analogWrite(motorPin2, myMaxRPM);
-    analogWrite(motorPin3, myMaxRPM);
-    analogWrite(motorPin4, myMaxRPM);
-    analogWrite(motorPin5, myMaxRPM);
-    analogWrite(motorPin6, myMaxRPM);
-    analogWrite(motorPin7, myMaxRPM);
-    analogWrite(motorPin8, myMaxRPM);
-    analogWrite(motorPin9, myMaxRPM);
-    analogWrite(motorPin10, myMaxRPM);
-    analogWrite(motorPin11, myMaxRPM);
-    analogWrite(motorPin12, myMaxRPM);
-    analogWrite(motorPin13, myMaxRPM);
-    analogWrite(motorPin14, myMaxRPM);
-
-    analogWrite(motorOutPin, myMaxRPM);
+    analogWrite(ebikePin1, myMaxRPM);
+    analogWrite(ebikePin2, myMaxRPM);
+    analogWrite(ebikePin3, myMaxRPM);
+    analogWrite(ebikePin4, myMaxRPM);
+    analogWrite(ebikePin5, myMaxRPM);
+    analogWrite(ebikePin6, myMaxRPM);
+    analogWrite(ebikePin7, myMaxRPM);
+    analogWrite(ebikePin8, myMaxRPM);
+    analogWrite(ebikePin9, myMaxRPM);
+    analogWrite(ebikePin10, myMaxRPM);
+    analogWrite(ebikePin11, myMaxRPM);
+    analogWrite(ebikePin12, myMaxRPM);
+    analogWrite(ebikePin13, myMaxRPM);
+    analogWrite(ebikePin14, myMaxRPM);
   }
   myPrevMaxRPM = myMaxRPM;
 }
