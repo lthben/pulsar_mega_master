@@ -4,6 +4,7 @@ int num_leds_per_strip; //for vumeter mode
 
 const int MAXBRIGHTLEVEL = 128; //before visible voltage drop occurs
 CRGB pulseColor = CRGB(MAXBRIGHTLEVEL, MAXBRIGHTLEVEL, MAXBRIGHTLEVEL); //the colour for the pulse mode
+CRGB tiffanyBlueColor = CRGB(6, MAXBRIGHTLEVEL, MAXBRIGHTLEVEL-40 );
 float pulseSpeed = 3;
 
 void init_LEDs() {
@@ -60,7 +61,7 @@ void vumeter() {
 void show_vumeter() {
   for (int x = 0; x < NUM_STRIPS; x++) {
     for (int i = 0; i < num_leds_per_strip; i++) {
-      leds[x][i] = pulseColor;
+      leds[x][i] = tiffanyBlueColor;
     }
     for (int j = NUM_LEDS_PER_STRIP - 1; j >= num_leds_per_strip; j--) {
       leds[x][j] = CRGB(0, 0, 0);
